@@ -1,0 +1,77 @@
+<script>
+function select_item(item)
+{
+targetitem.value = item;
+top.close();
+return false;
+}
+</script>
+
+
+
+<!--<table border="1" cellpadding="2">
+	<tr>
+		<td>No.</td>
+		<td>Nama</td>
+		<td>&nbsp;</td>	
+	</tr>
+	<tr>
+		<td>No.</td>
+		<td>Canis</td>
+		<td><input type="button" onClick='return select_item("Canis")' value="Choose" /></td>	
+	</tr>
+	<tr>
+		<td>No.</td>
+		<td>Canis</td>
+		<td><input type="button" onClick='return select_item("Felis")' value="Choose" /></td>	
+	</tr>
+	
+	
+</table>-->
+
+<?php
+mysql_connect("localhost","root","");
+mysql_select_db("db_potrobangsan");
+
+		$tabel = "select * from view_penduduk order by id_penduduk desc";		
+		$query = mysql_query($tabel);
+		
+?>	
+<div class="judul">Data Penduduk</div>		
+	<table class="tabelbox1">
+		<tr>
+			<th><b>&nbsp;</b></th>
+			<th><b>No.</b></th>
+			<th><b>NO. KK</b></th>
+			<th><b>NIK</b></th>
+			<th><b>Nama</b></th>
+			<th><b>Kelamin</b></th>
+			<th><b>Alamat</b></th>	
+			<th><b>RT</b></th>
+			<th><b>RW</b></th>
+		</tr>
+		<?php
+		$starting = starting();
+		$recpage = recpage();
+		$current = $_REQUEST["x"];
+		$current1 = 0;
+		
+		$i=$starting+1;		
+		while ($r= mysql_fetch_array($query)){
+			
+		echo "
+		  <td>$i</td>
+		  <td>$r[no_kk]</td>
+		  <td>$r[nik]</td>
+		  <td>$r[nama]</td>
+		  <td>$r[kelamin]</td>
+		  <td>$r[alamat]</td>
+		  <td>$r[rt]</td>
+		  <td>$r[rw]</td>";
+			
+		echo "</tr>";
+		$i++;
+		}
+		?>	
+</table>
+

@@ -1,0 +1,137 @@
+<script type="text/javascript">
+	window.onload = function(){
+		new JsDatePick({
+			useMode:2,
+			target:"inputField1",
+			dateFormat:"%Y-%m-%d"
+		});
+		new JsDatePick({
+			useMode:2,
+			target:"inputField2",
+			dateFormat:"%Y-%m-%d"
+		});
+	};
+</script>
+<body>
+<?php
+require_once 'Classes/PHPExcel.php';
+require_once 'Classes/PHPExcel/Reader/Excel2007.php';
+require_once 'Classes/PHPExcel/IOFactory.php';
+	
+$to_page = "datarbaizin";
+
+$dir = "uploads";
+$nama_file = $_FILES['file_excel']['name'];
+$ukuran = $_FILES['file_excel']['size'];
+$tipe = $_FILES['file_excel']['type'];
+$extrak = pathinfo($nama_file);
+if(($_POST["tombol"] == "Upload") and ($nama_file != ""))move_uploaded_file($_FILES['file_excel']['tmp_name'], $dir."/".$nama_file);
+
+if($nama_file == "")$nama_file = $_POST["openfile"];
+$open = opendir($dir) or die('Folder tidak ditemukan ...!');
+$exist = "";
+while ($file    =readdir($open)) {
+	if($file !='.' && $file !='..'){   
+		if($nama_file == $file) $exist = 1;
+	}
+}
+
+if($_POST["tombol"]=="Batal"){
+	?>
+	<script language="JavaScript">
+		document.location.href='?send=<?php echo $to_page.'//'.$starting;?>/<?php echo $search;?>';
+	</script>
+	<?php
+}
+
+if($_POST["tombol"]=="Import"){
+	$field = array ("id_permohonan_izin","nama_perusahaan","nib","day_of_tanggal_terbit_oss","uraian_status_penanaman_modal","propinsi",
+	"kab_kota","id_proyek","kd_resiko","kbli","day_of_tgl_izin","uraian_jenis_perizinan","nama_dokumen","uraian_kewenangan","uraian_status_respon","kewenangan","kl_sektor");
+	
+	//id_permohonan_izin,nama_perusahaan,nib,day_of_tanggal_terbit_oss,uraian_status_penanaman_modal,propinsi,kab_kota,kd_resiko,kbli,day_of_tgl_izin,
+	//uraian_jenis_perizinan,nama_dokumen,uraian_kewenangan,uraian_status_respon,kewenangan,verifikasi,tgl_verifikasi
+	
+	//$objPHPExcel = PHPExcel_IOFactory::load("uploads/" . $file_import);
+	$objPHPExcel = PHPExcel_IOFactory::load($dir."/".$nama_file);
+	 
+	foreach ($objPHPExcel->getWorksheetIterator() as $worksheet) {
+
+		$worksheetTitle = $worksheet->getTitle();
+		$highestRow = $worksheet->getHighestRow(); // e.g. 10
+		$highestColumn = 'R'; //$worksheet->getHighestColumn(); // e.g 'F'
+		$highestColumnIndex = PHPExcel_Cell::columnIndexFromString($highestColumn);
+	 
+		for ($row = 2; $row <= $highestRow; ++ $row) {
+			
+			$i = 0;
+			$id = "";
+			$isi = "";
+			$kolom = "";
+			$update = "";
+			$dataRow = array();
+			for ($col = 1; $col < $highestColumnIndex; ++ $col) {
+				$cell = $worksheet->getCellByColumnAndRow($col, $row);
+				$val = $cell->getValue();
+				$val = trim($val);
+				$val = str_replace("'","",$val);
+				if($col == 4 or $col == 11){
+					$tgl = explode("/",$val);
+					$val = "20".$tgl[2]."-".$tgl[1]."-".$tgl[0];
+				}
+				if($id == "")$id = $val;
+				$isi .="'".$val."',";
+				$kolom .= $field[$i].",";
+				$update .= $field[$i]."='".$val."',";
+				
+				$i++;
+			}
+			
+			$kolom = substr($kolom, 0, -1);
+			$isi = substr($isi, 0, -1);
+			$update = substr($update, 0, -1);
+			//echo "$isi<br>";
+			
+			$cek=mysql_num_rows(mysql_query("select*from oss_rba_izins where id_permohonan_izin='$id'"));
+			if($cek == 0){
+				$tambah="insert into oss_rba_izins ($kolom) values ($isi)";
+				$hasil=mysql_query($tambah);
+				if (!$hasil) echo "Input Gagal :".mysql_error()."<br>";
+			}else{
+				$r_izin=mysql_fetch_array(mysql_query("select*from oss_rba_izins where id_permohonan_izin='$id'"));
+				$ubah="update oss_rba_izins set $update where id='$r_izin[id]'";
+				$hasil=mysql_query($ubah);
+				if (!$hasil) echo "Update Gagal :".mysql_error()."<br>";
+			}
+		} 
+	}
+	
+	if ($hasil){
+		?>
+		<script language="JavaScript">alert('data OSS RBA Izin telah diImport !');
+			document.location.href='?send=<?php echo $to_page.'//'.$starting;?>/<?php echo $search;?>';
+		</script>
+		<?php
+	}
+}
+
+
+?>	
+		
+<div><span class='judul'>Import Data OSS RBA Izin</span></div>
+
+<form action='' method='post' autocomplete="off" ENCTYPE="multipart/form-data"> 
+<table>
+<tr><td>Upload File Excel</td>
+	<td><input type="file" name="file_excel" id="file_excel" value=""></td>
+	<td><input type="submit" name="tombol" value="Upload" onClick="return validateForm()">
+	<input type="submit" name="tombol" value="Batal"></td>
+</tr>
+<tr><td colspan="3">&nbsp;</td></tr>
+<tr>
+<?php
+if($exist) echo "<td>File Terupload </td><td><input type='text' name='openfile' value='$nama_file' class='readonly' readonly></td><td><input type='submit' name='tombol' value='Import'></td>";
+?>
+</tr>	
+</table>
+</form>
+</body>
